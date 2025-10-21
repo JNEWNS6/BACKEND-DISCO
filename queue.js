@@ -1,11 +1,11 @@
 // queue.js
 import pkg from 'bullmq';
-const { Queue, Worker, QueueScheduler } = pkg;
+const { Queue, Worker } = pkg; // ⬅️ no QueueScheduler in v5
 import IORedis from 'ioredis';
 import { Pool } from 'pg';
 import { verifyPromo } from './utils/verifyPromo.js';
 
-// Handle TLS automatically if REDIS_URL starts with rediss://
+// TLS if rediss://
 const isTLS = process.env.REDIS_URL?.startsWith('rediss://');
 
 const connection = new IORedis(process.env.REDIS_URL, {
@@ -14,19 +14,17 @@ const connection = new IORedis(process.env.REDIS_URL, {
   ...(isTLS ? { tls: { rejectUnauthorized: false } } : {}),
 });
 
-// Optional schedulers (recommended)
-const promoScheduler = new QueueScheduler('promoVerification', { connection });
-const billingScheduler = new QueueScheduler('billingOps', { connection });
-
+// Queues
 export const promoQueue = new Queue('promoVerification', { connection });
 export const billingQueue = new Queue('billingOps', { connection });
 
+// Postgres
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// --- Worker: Promo Verification ---
+// Workers
 new Worker(
   'promoVerification',
   async job => {
@@ -37,7 +35,6 @@ new Worker(
   { connection }
 );
 
-// --- Worker: Billing / Deactivation ---
 new Worker(
   'billingOps',
   async job => {
@@ -59,6 +56,7 @@ new Worker(
   { connection }
 );
 
+// Helper
 export async function scheduleDeactivation(offerId, delayMs) {
   return billingQueue.add(
     'deactivateOfferAfterGrace',
