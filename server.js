@@ -32,6 +32,6 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.get('/', (req, res) => {
   res.send('Disco backend is running. Try <a href="/health">/health</a> or <a href="/admin">/admin</a>.');
 });
-// ✅ Only ONE listener — works locally and on Render
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log('DISCO API listening on', port));
